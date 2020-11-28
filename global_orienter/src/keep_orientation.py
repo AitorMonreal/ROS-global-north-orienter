@@ -24,11 +24,11 @@ class NorthOrienter(object):
         self.vel_data = Twist()
         self.max_angular_speed = 0.3  # maximum angular speed at which we want the robot to move
         self.min_angular_speed = 0.1  # minimum angular speed at which we want the robot to move
-        self.kp = 0.5  # these would need tuning - could be done by adding them to a dynamic reconfigure
-        self.kd = 0.5
-        self.ki = 0.5
+        self.kp = 5000  # these would need tuning - could be done by adding them to a dynamic reconfigure
+        self.kd = 5000
+        self.ki = 5000
         self.tol = 2e-06  # tolerance error for the orientation
-        self.orientation_estimation_list = deque(maxlen=5)
+        self.orientation_estimation_list = deque(maxlen=5)  # a deque allows us to only store 'maxlen' number of parameters in a list at any given time. When we add a new one, the last one is dropped
         self.r = rospy.Rate(10)  # rate of 10Hz - 10 times per second
 
     def orientate_robot(self):
@@ -36,12 +36,12 @@ class NorthOrienter(object):
         orientation_pid.output_limits = (-self.max_angular_speed, self.max_angular_speed)  # setting the limitis for the angular speeds that will be output by the PID control
         #print(self.magreader.mag_data)
         #rospy.Rate(1).sleep()
-        rospy.wait_for_message('/imu/mag', MagneticField, timeout=10)
+        #rospy.wait_for_message('/imu/mag', MagneticField, timeout=10)
         if abs(self.magreader.mag_data.x) > self.tol:  # If the x-reading of the IMU magnetometer is above a certain error, then we move the robot. Else, we do nothing
             if self.magreader.mag_data.y < 0:
                 self.vel_data
             # Given that IMU data can be quite noisy, we create a running mean of the last 5 readings to base our PID control on the average of these readings.
-            self.orientation_estimation_list.append(self.magreader.mag_data.x)
+            self.orientation_estimation_list.append(-self.magreader.mag_data.x)  # Negative to ensure that we turn in the correct direction - left if we're pointing East, and right if we are pointing West
             orientation_running_mean = float(sum(self.orientation_estimation_list))/float(len(self.orientation_estimation_list))
             angular_speed = orientation_pid(orientation_running_mean)
 
@@ -69,6 +69,7 @@ class NorthOrienter(object):
 if __name__ == "__main__":
     rospy.init_node("orient_north", anonymous=False)
     northorienter = NorthOrienter()
+    rospy.wait_for_message('/imu/mag', MagneticField, timeout=10)  # wait for an initial message of type MagneticField to be published to the /imu/mag topic that we will be listening to. Timeout of 10s
     while not rospy.is_shutdown():
         try:
             northorienter.orientate_robot()
