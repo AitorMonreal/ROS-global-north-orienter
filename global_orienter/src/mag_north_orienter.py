@@ -35,6 +35,10 @@ class NorthOrienter(object):
         orientation_pid = PID(self.kp, self.ki, self.kd, self.target)
         orientation_pid.output_limits = (-self.max_angular_speed, self.max_angular_speed)  # setting the limitis for the angular speeds that will be output by the PID control
 
+        # Initial angular_speed in case robot starts pointing South:
+        self.vel_data.angular.z = self.max_angular_speed
+        self._vel_pub.publish(self.vel_data)
+
         if (abs(self.magreader.mag_data.x) > self.tol):  # If the x-reading of the IMU magnetometer is above a certain error, we apply the PID control on the angular_speed
             # Given that IMU data can be a bit noisy, we create a running mean of the last 5 readings to base our PID control on the average of these readings - this smoothens the motion
             self.orientation_estimation_list.append(self.magreader.mag_data.y)  # Negative to ensure that we turn in the correct direction - left if we're pointing East, and right if we are pointing West
@@ -62,7 +66,7 @@ class NorthOrienter(object):
         #  angular_speed at which it entered this "window". This is a form of hysteresis, added here to prevent rapid switching of the angular_speed when the robot goes through the state of looking South - if not it could start jittering in place.
 
 
-        # CURRENT ISSUE: if we start looking South we won't actually move anywhere
+        # CURRENT ISSUE: if we start looking South we won't actually move anywhere - Maybe start with an initial angular speed, although this isn't elegant
 
 
         self.r.sleep()
