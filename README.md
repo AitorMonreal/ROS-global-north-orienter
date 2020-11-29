@@ -19,3 +19,8 @@ These are published to the /imu/mag topic using a MagneticField message type. Th
 - South - (0, -5e-05)
 - West  - (-5e-05, 0)
 
+## Steps to run the code:
+
+1. First clone the repo, install the aforementioned 2 IMU packages into your workspace, and launch the phidgets_imu.launch
+2. You can now rosrun the imu_mag_print.py to get a better idea of the output of the magnetometer readings. NOTE: the magnetometer will be affected by other magnetic fields and large ferrous structures, so take this into account when using this code.
+3. launch the north_orienter.launch file. This outputs the calculated angular_speed of the robot to the /cmd_vel topic using a PID controller. Play around with the controller gains and other code parameters until you are happy with the results.
