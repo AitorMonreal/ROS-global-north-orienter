@@ -18,12 +18,13 @@ class MagReader(object):
 
 class NorthOrienter(object):
     def __init__(self):
-        self.magreader = MagReader()
+        self.magreader = MagReader()  # instance of the magnetic field subscriber
         self._vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)  # publisher to the wheel motion topic
         self.vel_data = Twist()
         self.max_angular_speed = 0.5  # maximum angular speed at which we want the robot to move
         self.min_angular_speed = 0.1  # minimum angular speed at which we want the robot to move
-        self.kp = 6000  # Kp, Kd, Ki - these would need tuning, which could be done by adding them to a dynamic reconfigure
+        # Kp, Kd, Ki - these would need tuning - could be done by adding them to a dynamic reconfigure
+        self.kp = 6000
         self.kd = 5000
         self.ki = 5000
         self.tol = 2e-06  # tolerance error for the orientation
@@ -32,13 +33,9 @@ class NorthOrienter(object):
         self.r = rospy.Rate(10)  # rate of 10Hz - 10 times per second
 
     def orientate_robot(self):
+        # PID controller:
         orientation_pid = PID(self.kp, self.ki, self.kd, self.target)
         orientation_pid.output_limits = (-self.max_angular_speed, self.max_angular_speed)  # setting the limitis for the angular speeds that will be output by the PID control
-
-        # Initial angular_speed in case robot starts pointing South:
-        self.vel_data.angular.z = self.max_angular_speed
-        self._vel_pub.publish(self.vel_data)
-
         if (abs(self.magreader.mag_data.x) > self.tol):  # If the x-reading of the IMU magnetometer is above a certain error, we apply the PID control on the angular_speed
             # Given that IMU data can be a bit noisy, we create a running mean of the last 5 readings to base our PID control on the average of these readings - this smoothens the motion
             self.orientation_estimation_list.append(self.magreader.mag_data.y)  # Negative to ensure that we turn in the correct direction - left if we're pointing East, and right if we are pointing West
@@ -53,23 +50,23 @@ class NorthOrienter(object):
             if self.magreader.mag_data.x < 0:  # ie if the front of the robot is angled towards the West
                 angular_speed = -angular_speed
 
-            print('Robot angular speed: ' + str(angular_speed))
             self.vel_data.angular.z = angular_speed
             self._vel_pub.publish(self.vel_data)  # publish the calculated angular_speed to the '/cmd_vel' topic
 
         elif (abs(self.magreader.mag_data.x) < self.tol) and (self.magreader.mag_data.y > 0):  # If the robot is pointing towards the North then we stop its rotation
             self.vel_data.angular.z = 0
             self._vel_pub.publish(self.vel_data)
-            print('Robot angular speed: 0')
 
         #  We've left a case untouched - if (abs(self.magreader.mag_data.x) < self.tol) and (self.magreader.mag_data.y < 0) - this means that the robot is practically fully aligned with the South direction. If this happens, by skipping it we neither bring the robot to a stop, nor do we change the angular_speed, hence the robot continues moving at the
         #  angular_speed at which it entered this "window". This is a form of hysteresis, added here to prevent rapid switching of the angular_speed when the robot goes through the state of looking South - if not it could start jittering in place.
+        #  However, we need to consider the case when the robot is looking South and it isn't moving. This could happen at startup, and if it happens we have to tell the robot to start moving:
+        else:
+            if self.vel_data.angular.z == 0:
+                self.vel_data.angular.z = self.max_angular_speed
+                self._vel_pub.publish(self.vel_data)
 
-
-        # CURRENT ISSUE: if we start looking South we won't actually move anywhere - Maybe start with an initial angular speed, although this isn't elegant
-
-
-        self.r.sleep()
+        print('Robot angular speed: ' + str(self.vel_data.angular.z))  # We print the angular_speed of the robot for debugging purposes
+        self.r.sleep()  # wait so that robot motion is smoother
 
 if __name__ == '__main__':
     rospy.init_node('orient_north', anonymous=False)
