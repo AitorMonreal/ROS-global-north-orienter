@@ -63,13 +63,6 @@ class NorthOrienter(object):
 
         self.r.sleep()
 
-# Three ideas:
-'''
-- If y goes negative we turn either 90 deg clockwise or 90 deg anticlokwise - We won't really know if we have managed to turn 90 deg, and it may depend on the terrain due to the wheels
-- Two different PID controls, one for being on the East, and one for the being on the West. Then we set the minimum angular speed to be positive or negative so that we can only turn towards the North
-- Three different PID controls, one for close to North (we can turn either East or West), and one for East and one for West.
-'''
-
 if __name__ == "__main__":
     rospy.init_node("orient_north", anonymous=False)
     northorienter = NorthOrienter()
