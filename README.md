@@ -1,4 +1,4 @@
-ROS-global-north-orienter
+#Global North Orienter
 
 This ROS program adjusts the angular speed of a robot based on the magnetometer readings from an IMU mounted on it in order to align the robot with the North from anywhere on the globe (both on the Northern and Southern hemispheres).
 
