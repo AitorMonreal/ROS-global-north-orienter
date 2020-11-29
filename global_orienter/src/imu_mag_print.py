@@ -5,14 +5,14 @@ from sensor_msgs.msg import MagneticField
 
 class MagSubscriber(object):
     def __init__(self):
-        self._mag_sub = rospy.Subscriber("/imu/mag", MagneticField, self.mag_cb)
-        self._mag_data = MagneticField()
+        self.mag_sub = rospy.Subscriber("/imu/mag", MagneticField, self.mag_cb)
+        self.mag_data = MagneticField()
 
     def mag_cb(self, msg):
-        self._mag_data = msg.magnetic_field
+        self.mag_data = msg.magnetic_field
     
     def get_mag_data(self):
-        return self._mag_data
+        return self.mag_data
 
 
 # To debug - If this executable script is ran independently through 'rosrun' we will publish the magnetometer data 10 times per second, all x, y and z data. 
@@ -22,6 +22,7 @@ if __name__ == "__main__":
     magsubscriber = MagSubscriber()
     while not rospy.is_shutdown():
         try:
+            print('------')
             print(magsubscriber.get_mag_data())
             rospy.Rate(10).sleep()
         except rospy.ROSInterruptException:

@@ -1,0 +1,8 @@
+<launch>
+    <node
+    pkg = 'global_orienter'
+    name = 'orient_north'
+    type = 'mag_north_orienter.py'
+    output = 'screen'
+    />
+</launch>
